@@ -1,257 +1,210 @@
-local httpService = game:GetService('HttpService')
+local repo = 'https://raw.githubusercontent.com/wally-rblx/LinoriaLib/main/'
 
-local SaveManager = {} do
-	SaveManager.Folder = 'LinoriaLibSettings'
-	SaveManager.Ignore = {}
-	SaveManager.Parser = {
-		Toggle = {
-			Save = function(idx, object) 
-				return { type = 'Toggle', idx = idx, value = object.Value } 
-			end,
-			Load = function(idx, data)
-				if Toggles[idx] then 
-					Toggles[idx]:SetValue(data.value)
-				end
-			end,
-		},
-		Slider = {
-			Save = function(idx, object)
-				return { type = 'Slider', idx = idx, value = tostring(object.Value) }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValue(data.value)
-				end
-			end,
-		},
-		Dropdown = {
-			Save = function(idx, object)
-				return { type = 'Dropdown', idx = idx, value = object.Value, mutli = object.Multi }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValue(data.value)
-				end
-			end,
-		},
-		ColorPicker = {
-			Save = function(idx, object)
-				return { type = 'ColorPicker', idx = idx, value = object.Value:ToHex() }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValueRGB(Color3.fromHex(data.value))
-				end
-			end,
-		},
-		KeyPicker = {
-			Save = function(idx, object)
-				return { type = 'KeyPicker', idx = idx, mode = object.Mode, key = object.Value }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValue({ data.key, data.mode })
-				end
-			end,
-		}
-	}
-
-	function SaveManager:SetIgnoreIndexes(list)
-		for _, key in next, list do
-			self.Ignore[key] = true
-		end
-	end
-
-	function SaveManager:SetFolder(folder)
-		self.Folder = folder;
-		self:BuildFolderTree()
-	end
-
-	function SaveManager:Save(name)
-		local fullPath = self.Folder .. '/settings/' .. name .. '.json'
-
-		local data = {
-			objects = {}
-		}
-
-		for idx, toggle in next, Toggles do
-			if self.Ignore[idx] then continue end
-
-			table.insert(data.objects, self.Parser[toggle.Type].Save(idx, toggle))
-		end
-
-		for idx, option in next, Options do
-			if not self.Parser[option.Type] then continue end
-			if self.Ignore[idx] then continue end
-
-			table.insert(data.objects, self.Parser[option.Type].Save(idx, option))
-		end	
-
-		local success, encoded = pcall(httpService.JSONEncode, httpService, data)
-		if not success then
-			return false, 'failed to encode data'
-		end
-
-		writefile(fullPath, encoded)
-		return true
-	end
-
-	function SaveManager:Load(name)
-		local file = self.Folder .. '/settings/' .. name .. '.json'
-		if not isfile(file) then return false, 'invalid file' end
-
-		local success, decoded = pcall(httpService.JSONDecode, httpService, readfile(file))
-		if not success then return false, 'decode error' end
-
-		for _, option in next, decoded.objects do
-			if self.Parser[option.type] then
-				self.Parser[option.type].Load(option.idx, option)
-			end
-		end
-
-		return true
-	end
-
-	function SaveManager:IgnoreThemeSettings()
-		self:SetIgnoreIndexes({ 
-			"BackgroundColor", "MainColor", "AccentColor", "OutlineColor", "FontColor", -- themes
-			"ThemeManager_ThemeList", 'ThemeManager_CustomThemeList', 'ThemeManager_CustomThemeName', -- themes
-		})
-	end
-
-	function SaveManager:BuildFolderTree()
-		local paths = {
-			self.Folder,
-			self.Folder .. '/themes',
-			self.Folder .. '/settings'
-		}
-
-		for i = 1, #paths do
-			local str = paths[i]
-			if not isfolder(str) then
-				makefolder(str)
-			end
-		end
-	end
-
-	function SaveManager:RefreshConfigList()
-		local list = listfiles(self.Folder .. '/settings')
-
-		local out = {}
-		for i = 1, #list do
-			local file = list[i]
-			if file:sub(-5) == '.json' then
-				-- i hate this but it has to be done ...
-
-				local pos = file:find('.json', 1, true)
-				local start = pos
-
-				local char = file:sub(pos, pos)
-				while char ~= '/' and char ~= '\\' and char ~= '' do
-					pos = pos - 1
-					char = file:sub(pos, pos)
-				end
-
-				if char == '/' or char == '\\' then
-					table.insert(out, file:sub(pos + 1, start - 1))
-				end
-			end
-		end
-		
-		return out
-	end
-
-	function SaveManager:SetLibrary(library)
-		self.Library = library
-	end
-
-	function SaveManager:LoadAutoloadConfig()
-		if isfile(self.Folder .. '/settings/autoload.txt') then
-			local name = readfile(self.Folder .. '/settings/autoload.txt')
-
-			local success, err = self:Load(name)
-			if not success then
-				return self.Library:Notify('Failed to load autoload config: ' .. err)
-			end
-
-			self.Library:Notify(string.format('Auto loaded config %q', name))
-		end
-	end
+local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
+local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 
-	function SaveManager:BuildConfigSection(tab)
-		assert(self.Library, 'Must set SaveManager.Library')
+local Window = Library:CreateWindow({
+    Title = '🐬 SMT|AUTOREJOIN 🌻 ',
+    Center = true, 
+    AutoShow = true,
+})
 
-		local section = tab:AddRightGroupbox('Configuration')
+local Tabs = {
+    Main = Window:AddTab('Main Menu'), 
+    ['UI Settings'] = Window:AddTab('UI Settings'),
+}
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+Library:OnUnload(function()
+    print('Unloaded!')
+    Library.Unloaded = true
+end)
 
-		section:AddDropdown('SaveManager_ConfigList', { Text = 'Config list', Values = self:RefreshConfigList(), AllowNull = true })
-		section:AddInput('SaveManager_ConfigName',    { Text = 'Config name' })
 
-		section:AddDivider()
 
-		section:AddButton('Create config', function()
-			local name = Options.SaveManager_ConfigName.Value
+MenuGroup:AddButton('Unload', function() Library:Unload() end)
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' }) 
 
-			if name:gsub(' ', '') == '' then 
-				return self.Library:Notify('Invalid config name (empty)', 2)
-			end
+Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
 
-			local success, err = self:Save(name)
-			if not success then
-				return self.Library:Notify('Failed to save config: ' .. err)
-			end
+ThemeManager:SetLibrary(Library)
 
-			self.Library:Notify(string.format('Created config %q', name))
+SaveManager:SetLibrary(Library)
 
-			Options.SaveManager_ConfigList.Values = self:RefreshConfigList()
-			Options.SaveManager_ConfigList:SetValues()
-			Options.SaveManager_ConfigList:SetValue(nil)
-		end):AddButton('Load config', function()
-			local name = Options.SaveManager_ConfigList.Value
+SaveManager:IgnoreThemeSettings() 
 
-			local success, err = self:Load(name)
-			if not success then
-				return self.Library:Notify('Failed to load config: ' .. err)
-			end
 
-			self.Library:Notify(string.format('Loaded config %q', name))
-		end)
 
-		section:AddButton('Overwrite config', function()
-			local name = Options.SaveManager_ConfigList.Value
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' }) 
 
-			local success, err = self:Save(name)
-			if not success then
-				return self.Library:Notify('Failed to overwrite config: ' .. err)
-			end
+ThemeManager:SetFolder('MyScriptHub')
+SaveManager:SetFolder('MyScriptHub/specific-game')
 
-			self.Library:Notify(string.format('Overwrote config %q', name))
-		end)
-		
-		section:AddButton('Autoload config', function()
-			local name = Options.SaveManager_ConfigList.Value
-			writefile(self.Folder .. '/settings/autoload.txt', name)
-			SaveManager.AutoloadLabel:SetText('Current autoload config: ' .. name)
-			self.Library:Notify(string.format('Set %q to auto load', name))
-		end)
+SaveManager:BuildConfigSection(Tabs['UI Settings']) 
 
-		section:AddButton('Refresh config list', function()
-			Options.SaveManager_ConfigList.Values = self:RefreshConfigList()
-			Options.SaveManager_ConfigList:SetValues()
-			Options.SaveManager_ConfigList:SetValue(nil)
-		end)
+ThemeManager:ApplyToTab(Tabs['UI Settings'])
 
-		SaveManager.AutoloadLabel = section:AddLabel('Current autoload config: none', true)
 
-		if isfile(self.Folder .. '/settings/autoload.txt') then
-			local name = readfile(self.Folder .. '/settings/autoload.txt')
-			SaveManager.AutoloadLabel:SetText('Current autoload config: ' .. name)
-		end
 
-		SaveManager:SetIgnoreIndexes({ 'SaveManager_ConfigList', 'SaveManager_ConfigName' })
-	end
+local RightGroupBox = Tabs.Main:AddRightGroupbox('Other Function')
 
-	SaveManager:BuildFolderTree()
+local LeftGroupBox = Tabs.Main:AddLeftGroupbox('AUTOREJOIN') -- Creating LeftGroupBox
+ LeftGroupBox:AddInput('MyTextbox', { -- Adding input box
+    Default = '',
+    Numeric = false, -- only allows non-numeric input
+    Finished = false, -- only calls callback when enter is pressed
+    Text = 'Paste jobid',
+})
+
+Options.MyTextbox:OnChanged(function()
+    print('Text updated. New text:', Options.MyTextbox.Value)
+end)
+
+local jobid = tostring(game.JobId)
+LeftGroupBox:AddButton('GetJobID', function()  -- Adding a button
+setclipboard(game.JobId)
+end)
+
+
+
+LeftGroupBox:AddToggle('MyToggle', {
+    Text = 'autojoin',
+    Default = true, -- Default value (true / false)
+
+})
+
+
+
+
+
+spawn(function()
+    while wait do
+local TeleportService = game:GetService("TeleportService")
+local jobidmain = tostring(game.JobId)
+local TargetID = tostring(Options.MyTextbox.Value)
+if Toggles.MyToggle.Value == true then do
+                    pcall(function()
+                        wait(0.3)
+                        if game:GetService("Players").LocalPlayer.AlreadyInLobby.Name == "AlreadyInLobby"then
+                        if jobidmain ~= TargetID then
+                        TeleportService:TeleportToPlaceInstance(8304191830, TargetID)
+                        _G.hoppserv = false
+                        end
+                        end
+                    end)
 end
+end
+end
+end)
 
-return SaveManager
+     LeftGroupBox:AddToggle('Autoleave', {
+     Text = 'Auto Leave',
+     Default = false,
+     function(state)
+         
+         end
+})
+
+    spawn(function()
+        while wait do
+        pcall(function()
+        wait(0.5)
+	    while wait() do
+        if Toggles.Autoleave.Value == true then
+        local CheckEnd = game:GetService("Workspace")["_DATA"].GameFinished
+
+                         if CheckEnd.Value == true then do
+                            wait(4)
+                            game:GetService("ReplicatedStorage").endpoints.client_to_server.teleport_back_to_lobby:InvokeServer()
+                         end
+                         end
+                     end
+                 end
+             end)
+        end
+     end)
+
+RightGroupBox:AddToggle('AutoDelete', {
+    Text = 'DeleteObject',
+    Default = false,
+    
+})
+
+RightGroupBox:AddInput('friname',{
+    Default = '',
+    Text = 'yourfriend'
+})
+
+RightGroupBox:AddToggle('FRIjoin',{
+    Default = false,
+    Text = 'AUTO JOINFRIEND'
+})
+
+getgenv().door = "_lobbytemplateportal29","_lobbytemplateportal30","_lobbytemplateportal31","_lobbytemplateportal32","_lobbytemplateportal33","_lobbytemplateportal34","_lobbytemplateportal35","_lobbytemplateportal36","_lobbytemplateportal37","_lobbytemplateportal38"
+,"_lobbytemplateportal39"
+
+
+spawn(function()
+        while wait do
+            pcall(function()
+            wait(0.5)
+    if Toggles.FRIjoin.Value == true then do
+        wait(0.5)
+if tostring(game:GetService("Workspace")["_PORTALS"].Lobbies[getgenv().door].Players.Value.Value) == tostring(Options.friname.Value) then
+    for i, v in pairs(game:GetService("Workspace")["_PORTALS"].Lobbies:GetDescendants()) do
+        if v.Name == "FriendsOnly" and v.Value == true then
+
+local args = {
+    [1] = tostring(v.Parent.Name)
+}
+
+game:GetService("ReplicatedStorage").endpoints.client_to_server.request_join_lobby:InvokeServer(unpack(args))
+wait(0.5)
+
+end
+end
+end
+end
+end
+end)
+end
+end)
+            
+
+
+
+spawn(function()
+
+if Toggles.AutoDelete.Value == true then do
+                    while wait do 
+                        wait(0.5)
+                        print("objectdoing")
+                        pcall(function()
+                        wait (0.5)
+                    for i,v in pairs(game:GetService("Workspace"):GetChildren()) do --path of the thing
+                          if v.Name == "_map" then --filter by name
+                    for a,b in pairs(v:GetChildren()) do
+                           b:Destroy() --delete the b(the selected parts)
+                                end
+                            end
+                        end
+                    end)
+                    end
+            
+end
+        else
+            Toggles.AutoDelete.Value = false
+        end
+    end)
+
+Toggles.AutoDelete:OnChanged(function()
+
+end)
+
+Toggles.Autoleave:OnChanged(function()
+
+end)
+ 
+ SaveManager:LoadAutoloadConfig()
+
