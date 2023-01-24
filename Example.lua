@@ -1,313 +1,250 @@
--- New example script written by wally
--- You can suggest changes with a pull request or something
-
 local repo = 'https://raw.githubusercontent.com/wally-rblx/LinoriaLib/main/'
 
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
-local Window = Library:CreateWindow({
-    -- Set Center to true if you want the menu to appear in the center
-    -- Set AutoShow to true if you want the menu to appear when it is created
-    -- Position and Size are also valid options here
-    -- but you do not need to define them unless you are changing them :)
 
-    Title = 'Example menu',
+local Window = Library:CreateWindow({
+    Title = '🐬 SMT|AUTOREJOIN 🌻 ',
     Center = true, 
     AutoShow = true,
 })
 
--- You do not have to set your tabs & groups up this way, just a prefrence.
 local Tabs = {
-    -- Creates a new tab titled Main
-    Main = Window:AddTab('Main'), 
+    Main = Window:AddTab('Main Menu'), 
     ['UI Settings'] = Window:AddTab('UI Settings'),
 }
-
--- Groupbox and Tabbox inherit the same functions
--- except Tabboxes you have to call the functions on a tab (Tabbox:AddTab(name))
-local LeftGroupBox = Tabs.Main:AddLeftGroupbox('Groupbox')
-
--- Tabboxes are a tiny bit different, but here's a basic example:
---[[
-
-local TabBox = Tabs.Main:AddLeftTabbox() -- Add Tabbox on left side
-
-local Tab1 = TabBox:AddTab('Tab 1')
-local Tab2 = TabBox:AddTab('Tab 2')
-
--- You can now call AddToggle, etc on the tabs you added to the Tabbox
-]]
-
--- Groupbox:AddToggle
--- Arguments: Index, Options
-LeftGroupBox:AddToggle('MyToggle', {
-    Text = 'This is a toggle',
-    Default = true, -- Default value (true / false)
-    Tooltip = 'This is a tooltip', -- Information shown when you hover over the toggle
-})
-
-
--- Fetching a toggle object for later use:
--- Toggles.MyToggle.Value
-
--- Toggles is a table added to getgenv() by the library
--- You index Toggles with the specified index, in this case it is 'MyToggle'
--- To get the state of the toggle you do toggle.Value
-
--- Calls the passed function when the toggle is updated
-Toggles.MyToggle:OnChanged(function()
-    -- here we get our toggle object & then get its value
-    print('MyToggle changed to:', Toggles.MyToggle.Value)
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+Library:OnUnload(function()
+    print('Unloaded!')
+    Library.Unloaded = true
 end)
 
--- This should print to the console: "My toggle state changed! New value: false"
-Toggles.MyToggle:SetValue(false)
 
--- Groupbox:AddButton
--- Arguments: Text, Callback
 
-local MyButton = LeftGroupBox:AddButton('Button', function()
-    print('You clicked a button!')
-end)
+MenuGroup:AddButton('Unload', function() Library:Unload() end)
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' }) 
 
--- Button:AddButton
--- Arguments: Text, Callback
--- Adds a sub button to the side of the main button
+Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
 
-local MyButton2 = MyButton:AddButton('Sub button', function()
-    print('You clicked a sub button!')
-end)
+ThemeManager:SetLibrary(Library)
 
--- Button:AddTooltip
--- Arguments: ToolTip
+SaveManager:SetLibrary(Library)
 
-MyButton:AddTooltip('This is a button')
-MyButton2:AddTooltip('This is a sub button')
+SaveManager:IgnoreThemeSettings() 
 
--- NOTE: You can chain the button methods!
---[[
-    EXAMPLE: 
 
-    LeftGroupBox:AddButton('Kill all', Functions.KillAll):AddTooltip('This will kill everyone in the game!')
-        :AddButton('Kick all', Functions.KickAll):AddTooltip('This will kick everyone in the game!')
-]]
 
--- Groupbox:AddLabel
--- Arguments: Text, DoesWrap
-LeftGroupBox:AddLabel('This is a label')
-LeftGroupBox:AddLabel('This is a label\n\nwhich wraps its text!', true)
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' }) 
 
--- Groupbox:AddDivider
--- Arguments: None
-LeftGroupBox:AddDivider()
+ThemeManager:SetFolder('MyScriptHub')
+SaveManager:SetFolder('MyScriptHub/specific-game')
 
--- Groupbox:AddSlider
--- Arguments: Idx, Options
-LeftGroupBox:AddSlider('MySlider', {
-    Text = 'This is my slider!',
+SaveManager:BuildConfigSection(Tabs['UI Settings']) 
 
-    -- Text, Default, Min, Max, Rounding must be specified.
-    -- Rounding is the number of decimal places for precision.
+ThemeManager:ApplyToTab(Tabs['UI Settings'])
 
-    -- Example:
-    -- Rounding 0 - 5
-    -- Rounding 1 - 5.1
-    -- Rounding 2 - 5.15
-    -- Rounding 3 - 5.155
 
-    Default = 0,
-    Min = 0,
-    Max = 5,
-    Rounding = 1,
 
-    Compact = false, -- If set to true, then it will hide the label
-})
+local RightGroupBox = Tabs.Main:AddRightGroupbox('Other Function')
 
--- Options is a table added to getgenv() by the library
--- You index Options with the specified index, in this case it is 'MySlider'
--- To get the value of the slider you do slider.Value
-
-local Number = Options.MySlider.Value
-Options.MySlider:OnChanged(function()
-    print('MySlider was changed! New value:', Options.MySlider.Value)
-end)
-
--- This should print to the console: "MySlider was changed! New value: 3"
-Options.MySlider:SetValue(3)
-
--- Groupbox:AddInput
--- Arguments: Idx, Info
-LeftGroupBox:AddInput('MyTextbox', {
-    Default = 'My textbox!',
-    Numeric = false, -- true / false, only allows numbers
-    Finished = false, -- true / false, only calls callback when you press enter
-
-    Text = 'This is a textbox',
-    Tooltip = 'This is a tooltip', -- Information shown when you hover over the textbox
-
-    Placeholder = 'Placeholder text', -- placeholder text when the box is empty
-    -- MaxLength is also an option which is the max length of the text
+local LeftGroupBox = Tabs.Main:AddLeftGroupbox('AUTOREJOIN') -- Creating LeftGroupBox
+ LeftGroupBox:AddInput('MyTextbox', { -- Adding input box
+    Default = '',
+    Numeric = false, -- only allows non-numeric input
+    Finished = false, -- only calls callback when enter is pressed
+    Text = 'Paste jobid',
 })
 
 Options.MyTextbox:OnChanged(function()
     print('Text updated. New text:', Options.MyTextbox.Value)
 end)
 
--- Groupbox:AddDropdown
--- Arguments: Idx, Info
-
-LeftGroupBox:AddDropdown('MyDropdown', {
-    Values = { 'This', 'is', 'a', 'dropdown' },
-    Default = 1, -- number index of the value / string
-    Multi = false, -- true / false, allows multiple choices to be selected
-
-    Text = 'A dropdown',
-    Tooltip = 'This is a tooltip', -- Information shown when you hover over the textbox
-})
-
-Options.MyDropdown:OnChanged(function()
-    print('Dropdown got changed. New value:', Options.MyDropdown.Value)
+local jobid = tostring(game.JobId)
+LeftGroupBox:AddButton('GetJobID', function()  -- Adding a button
+setclipboard(game.JobId)
 end)
 
-Options.MyDropdown:SetValue('This')
 
--- Multi dropdowns
-LeftGroupBox:AddDropdown('MyMultiDropdown', {
-    -- Default is the numeric index (e.g. "This" would be 1 since it if first in the values list)
-    -- Default also accepts a string as well
 
-    -- Currently you can not set multiple values with a dropdown
+LeftGroupBox:AddToggle('MyToggle', {
+    Text = 'autojoin',
+    Default = true, -- Default value (true / false)
 
-    Values = { 'This', 'is', 'a', 'dropdown' },
-    Default = 1, 
-    Multi = true, -- true / false, allows multiple choices to be selected
-
-    Text = 'A dropdown',
-    Tooltip = 'This is a tooltip', -- Information shown when you hover over the textbox
 })
 
-Options.MyMultiDropdown:OnChanged(function()
-    -- print('Dropdown got changed. New value:', )
-    print('Multi dropdown got changed:')
-    for key, value in next, Options.MyMultiDropdown.Value do
-        print(key, value) -- should print something like This, true
-    end
+
+
+
+
+spawn(function()
+    while wait do
+local TeleportService = game:GetService("TeleportService")
+local jobidmain = tostring(game.JobId)
+local TargetID = tostring(Options.MyTextbox.Value)
+if Toggles.MyToggle.Value == true then do
+                    pcall(function()
+                        wait(0.3)
+                        if game:GetService("Players").LocalPlayer.AlreadyInLobby.Name == "AlreadyInLobby"then
+                        if jobidmain ~= TargetID then
+                        TeleportService:TeleportToPlaceInstance(8304191830, TargetID)
+                        _G.hoppserv = false
+                        end
+                        end
+                    end)
+end
+end
+end
 end)
 
-Options.MyMultiDropdown:SetValue({
-    This = true,
-    is = true,
+     LeftGroupBox:AddToggle('Autoleave', {
+     Text = 'Auto Leave',
+     Default = false,
+     function(state)
+         
+         end
 })
 
--- Label:AddColorPicker
--- Arguments: Idx, Info
+    spawn(function()
+        while wait do
+        pcall(function()
+        wait(0.5)
+	    while wait() do
+        if Toggles.Autoleave.Value == true then
+        local CheckEnd = game:GetService("Workspace")["_DATA"].GameFinished
 
--- You can also ColorPicker & KeyPicker to a Toggle as well
-
-LeftGroupBox:AddLabel('Color'):AddColorPicker('ColorPicker', {
-    Default = Color3.new(0, 1, 0), -- Bright green
-    Title = 'Some color', -- Optional. Allows you to have a custom color picker title (when you open it)
-})
-
-Options.ColorPicker:OnChanged(function()
-    print('Color changed!', Options.ColorPicker.Value)
-end)
-
-Options.ColorPicker:SetValueRGB(Color3.fromRGB(0, 255, 140))
-
-LeftGroupBox:AddLabel('Keybind'):AddKeyPicker('KeyPicker', {
-    -- SyncToggleState only works with toggles. 
-    -- It allows you to make a keybind which has its state synced with its parent toggle
-
-    -- Example: Keybind which you use to toggle flyhack, etc.
-    -- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
-
-    Default = 'MB2', -- String as the name of the keybind (MB1, MB2 for mouse buttons)  
-    SyncToggleState = false, 
-
-
-    -- You can define custom Modes but I have never had a use for it.
-    Mode = 'Toggle', -- Modes: Always, Toggle, Hold
-
-    Text = 'Auto lockpick safes', -- Text to display in the keybind menu
-    NoUI = false, -- Set to true if you want to hide from the Keybind menu,
-})
-
--- OnClick is only fired when you press the keybind and the mode is Toggle
--- Otherwise, you will have to use Keybind:GetState()
-Options.KeyPicker:OnClick(function()
-    print('Keybind clicked!', Options.KeyPicker.Value)
-end)
-
-task.spawn(function()
-    while true do
-        wait(1)
-
-        -- example for checking if a keybind is being pressed
-        local state = Options.KeyPicker:GetState()
-        if state then
-            print('KeyPicker is being held down')
+                         if CheckEnd.Value == true then do
+                            wait(4)
+                            game:GetService("ReplicatedStorage").endpoints.client_to_server.teleport_back_to_lobby:InvokeServer()
+                         end
+                         end
+                     end
+                 end
+             end)
         end
+     end)
 
-        if Library.Unloaded then break end
+RightGroupBox:AddToggle('AutoDelete', {
+    Text = 'DeleteObject',
+    Default = false,
+    
+})
+
+RightGroupBox:AddInput('friname',{
+    Default = '',
+    Text = 'yourfriend'
+})
+
+RightGroupBox:AddToggle('FRIjoin',{
+    Default = false,
+    Text = 'AUTO JOINFRIEND'
+})
+
+local RightGroupBox = Tabs.Main:AddRightGroupbox('CSMPORTAL FUNC')
+RightGroupBox:AddToggle('csmtog',{
+    Default = false,
+    Text = 'DEVILPORTAL😈'
+})
+
+RightGroupBox:AddLabel('PUT THE NAME PHO OPENER FIRST')
+
+getgenv().door = "_lobbytemplateportal29","_lobbytemplateportal30","_lobbytemplateportal31","_lobbytemplateportal32","_lobbytemplateportal33","_lobbytemplateportal34","_lobbytemplateportal35","_lobbytemplateportal36","_lobbytemplateportal37","_lobbytemplateportal38"
+,"_lobbytemplateportal39"
+
+
+spawn(function()
+        while wait do
+            pcall(function()
+            wait(0.5)
+    if Toggles.FRIjoin.Value == true then do
+        wait(0.5)
+if tostring(game:GetService("Workspace")["_PORTALS"].Lobbies[getgenv().door].Players.Value.Value) == tostring(Options.friname.Value) then
+            for i, v in pairs(game:GetService("Workspace")["_PORTALS"].Lobbies:GetDescendants()) do
+            if v.Name == "Owner" then do
+            if tostring(v.Value) == tostring(Options.friname.Value) then
+                
+            local args = {
+            [1] = tostring(v.Parent.Name)
+                        }
+        
+            game:GetService("ReplicatedStorage").endpoints.client_to_server.request_join_lobby:InvokeServer(unpack(args))
+            wait(0.5)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
     end
 end)
 
-Options.KeyPicker:SetValue({ 'MB2', 'Toggle' }) -- Sets keybind to MB2, mode to Hold
+spawn(function()
+    if Toggles.csmtog.Value == true then do
+            while wait do
+            task.wait(2)
+            pcall(function()
+            if tostring(Options.friname.Value) == game.Players.LocalPlayer.Name then
+                task.wait(2)
+            for i,v in pairs(game:GetService("Players").LocalPlayer.PlayerGui.items.grid.List.Outer.ItemFrames:GetChildren()) do
+            if v.Name == "portal_csm" or v.Name == "portal_csm1" or v.Name == "portal_csm2" or v.Name == "portal_csm3" or v.Name == "portal_csm4" or v.Name == "portal_csm5"then
+                print(v._uuid_or_id.value)
+                getgenv().PortalID = v._uuid_or_id.value
+                break;
+                else
+            end
+        end
+          task.wait(1.5)
 
--- Library functions
--- Sets the watermark visibility
-Library:SetWatermarkVisibility(true)
+          local args = {
+            [1] = tostring(getgenv().PortalID),
+            [2] = {
+                ["friends_only"] = true
+            }
+        }
+        
+        game:GetService("ReplicatedStorage").endpoints.client_to_server.use_portal:InvokeServer(unpack(args))
+                        end
+                    end)
+                end
+            end
+        end
+    end)
 
--- Sets the watermark text
-Library:SetWatermark('This is a really long watermark to text the resizing')
 
-Library.KeybindFrame.Visible = true; -- todo: add a function for this
+spawn(function()
 
-Library:OnUnload(function()
-    print('Unloaded!')
-    Library.Unloaded = true
+if Toggles.AutoDelete.Value == true then do
+                    while wait do 
+                        wait(0.5)
+                        pcall(function()
+                        wait (0.5)
+                    for i,v in pairs(game:GetService("Workspace"):GetChildren()) do --path of the thing
+                          if v.Name == "_map" then --filter by name
+                    for a,b in pairs(v:GetChildren()) do
+                           b:Destroy() --delete the b(the selected parts)
+                                end
+                            end
+                        end
+                    end)
+                    end
+            
+end
+        else
+            Toggles.AutoDelete.Value = false
+        end
 end)
 
--- UI Settings
-local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 
--- I set NoUI so it does not show up in the keybinds menu
-MenuGroup:AddButton('Unload', function() Library:Unload() end)
-MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' }) 
 
-Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
+Toggles.AutoDelete:OnChanged(function()
 
--- Addons:
--- SaveManager (Allows you to have a configuration system)
--- ThemeManager (Allows you to have a menu theme system)
+end)
 
--- Hand the library over to our managers
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
+Toggles.Autoleave:OnChanged(function()
 
--- Ignore keys that are used by ThemeManager. 
--- (we dont want configs to save themes, do we?)
-SaveManager:IgnoreThemeSettings() 
-
--- Adds our MenuKeybind to the ignore list 
--- (do you want each config to have a different menu key? probably not.)
-SaveManager:SetIgnoreIndexes({ 'MenuKeybind' }) 
-
--- use case for doing it this way: 
--- a script hub could have themes in a global folder
--- and game configs in a separate folder per game
-ThemeManager:SetFolder('MyScriptHub')
-SaveManager:SetFolder('MyScriptHub/specific-game')
-
--- Builds our config menu on the right side of our tab
-SaveManager:BuildConfigSection(Tabs['UI Settings']) 
-
--- Builds our theme menu (with plenty of built in themes) on the left side
--- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox
-ThemeManager:ApplyToTab(Tabs['UI Settings'])
-
--- You can use the SaveManager:LoadAutoloadConfig() to load a config 
--- which has been marked to be one that auto loads!
+end)
+ 
+ SaveManager:LoadAutoloadConfig()
